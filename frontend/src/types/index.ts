@@ -1,0 +1,86 @@
+// Account Status Object & Union Type
+export const AccountStatus = {
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+  ARCHIVED: 'ARCHIVED',
+} as const;
+
+export type AccountStatus = (typeof AccountStatus)[keyof typeof AccountStatus];
+
+// Payment Method Object & Union Type
+export const PaymentMethod = {
+  CASH: 'CASH',
+  UPI: 'UPI',
+  BANK_TRANSFER: 'BANK_TRANSFER',
+  OTHER: 'OTHER',
+} as const;
+
+export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
+
+// Interfaces
+export interface Person {
+  id: string;
+  fullName: string;
+  phoneNumber: string;
+  address?: string;
+  originalAmount: number;
+  currentBalance: number;
+  currentDailyAmount: number;
+  status: AccountStatus;
+  startDate: string;
+  notes?: string;
+  remainingDays: number;
+  estimatedClearanceDate: string | null;
+  createdAt: string;
+}
+
+export interface Transaction {
+  id: string;
+  amount: number;
+  previousBalance: number;
+  newBalance: number;
+  paymentMethod: PaymentMethod;
+  notes?: string;
+  paymentDate: string;
+  createdAt: string;
+}
+
+export interface DashboardSummary {
+  totalPeople: number;
+  activePeople: number;
+  completedPeople: number;
+  totalOutstandingMoney: number;
+  collectedToday: number;
+  collectedAllTime: number;
+  peoplePaidToday: number;
+  pendingPaymentsToday: number;
+}
+
+export interface RecentTransaction {
+  id: string;
+  personName: string;
+  phoneNumber: string;
+  amount: number;
+  paymentMethod: string;
+  paymentDate: string;
+}
+
+export interface DashboardData {
+  summary: DashboardSummary;
+  recentTransactions: RecentTransaction[];
+}
+export interface RecentTransaction {
+  id: string;
+  personName: string;
+  amount: number;
+  paymentMethod: string;
+  paymentDate: string;
+}
+
+export interface DashboardMetrics {
+  totalOutstandingDebt: number;
+  totalCollectedToday: number;
+  activeAccountsCount: number;
+  completedAccountsCount: number;
+  recentTransactions: RecentTransaction[];
+}
