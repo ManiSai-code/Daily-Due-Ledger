@@ -2,13 +2,16 @@ import type { DashboardData, Person, Transaction, DashboardMetrics } from '../ty
 import apiClient from './apiClient';
 
 export const getDashboardStats = async (): Promise<DashboardData> => {
-  const response = await apiClient.get<{ success: boolean; data: DashboardData }>('/dashboard');
-  return response.data.data;
+  const response = await apiClient.get<{ success: boolean; data: DashboardData } | DashboardData>(
+    '/dashboard'
+  );
+  return 'data' in response.data ? response.data.data : response.data;
 };
 export const getDashboardMetrics = async (): Promise<DashboardMetrics> => {
-  const response = await apiClient.get<{ success: boolean; data: DashboardMetrics }>('/dashboard');
-  // Extracts data safely whether backend wraps it in .data or returns it directly
-  return response.data.data || (response.data as unknown as DashboardMetrics);
+  const response = await apiClient.get<{ success: boolean; data: DashboardMetrics } | DashboardMetrics>(
+    '/dashboard'
+  );
+  return 'data' in response.data ? response.data.data : response.data;
 };
 
 export const getAllPeople = async (search = '', status = ''): Promise<Person[]> => {
