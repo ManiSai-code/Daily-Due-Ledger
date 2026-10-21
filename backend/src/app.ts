@@ -11,7 +11,16 @@ dotenv.config();
 const app: Application = express();
 
 // Middleware
-app.use(cors());
+const configuredOrigins = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: configuredOrigins.length > 0 ? configuredOrigins : true,
+  })
+);
 app.use(express.json());
 
 // Routes
