@@ -37,11 +37,18 @@ export const createPersonService = async (input: CreatePersonInput) => {
   return await newPerson.save();
 };
 
-export const getAllPeopleService = async (search?: string, status?: string) => {
+export const getAllPeopleService = async (
+  search?: string,
+  status?: string,
+  assignedPersonIds?: string[]
+) => {
   const query: any = {};
 
   if (status) {
     query.status = status;
+  }
+  if (assignedPersonIds) {
+    query._id = { $in: assignedPersonIds };
   }
 
   if (search) {

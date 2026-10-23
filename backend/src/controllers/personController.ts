@@ -7,6 +7,7 @@ import {
   getDailyAmountHistoryService,
 } from '../services/personService';
 import { deletePerson } from '../services/personService';
+import { AuthenticatedRequest } from '../middleware/auth';
 export const createPerson = async (req: Request, res: Response): Promise<void> => {
   try {
     const { fullName, phoneNumber, address, originalAmount, currentDailyAmount, startDate, notes } = req.body;
@@ -42,12 +43,16 @@ export const createPerson = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-export const getAllPeople = async (req: Request, res: Response): Promise<void> => {
+export const getAllPeople = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const search = req.query.search as string;
     const status = req.query.status as string;
 
-    const people = await getAllPeopleService(search, status);
+    const people = await getAllPeopleService(
+      search,
+      status,
+      req.user?.role === 'READ_ONLY' ? req.user.assignedPersonIds : undefined
+    );
 
     res.status(200).json({
       success: true,

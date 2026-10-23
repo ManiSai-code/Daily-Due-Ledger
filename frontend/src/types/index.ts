@@ -7,6 +7,21 @@ export const AccountStatus = {
 
 export type AccountStatus = (typeof AccountStatus)[keyof typeof AccountStatus];
 
+export const UserRole = {
+  ADMIN: 'ADMIN',
+  READ_ONLY: 'READ_ONLY',
+} as const;
+
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  assignedPersonIds: string[];
+}
+
 // Payment Method Object & Union Type
 export const PaymentMethod = {
   CASH: 'CASH',
@@ -92,6 +107,7 @@ export interface RecentTransaction {
 
 export interface DashboardMetrics {
   totalOutstandingDebt: number;
+  totalCollectedOverall: number;
   totalCollectedToday: number;
   expectedCollectionToday: number;
   actualCollectionToday: number;
@@ -115,6 +131,9 @@ export interface CollectionReport {
   totalOutstanding: number;
   paymentCount: number;
   expectedCollection: number;
+  actualCollection: number;
+  missedAmount: number;
+  collectionPercentage: number;
   missedPayments: number;
   missedBorrowers: Array<{
     id: string;

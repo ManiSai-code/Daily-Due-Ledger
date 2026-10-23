@@ -119,6 +119,7 @@ export const CollectionReports: React.FC = () => {
               ['Outstanding', `₹${report.totalOutstanding.toLocaleString('en-IN')}`],
               ['Payments', report.paymentCount],
               ['Expected', `₹${report.expectedCollection.toLocaleString('en-IN')}`],
+              ['Missed amount', `₹${report.missedAmount.toLocaleString('en-IN')}`],
               ['Missed', report.missedPayments],
             ].map(([label, value]) => (
               <div key={label} className="bg-slate-50 rounded-lg p-3">
@@ -168,7 +169,9 @@ export const CollectionReports: React.FC = () => {
                 <div key={item.id} className="flex justify-between border-b border-slate-100 py-2">
                   <span>
                     {item.name}
-                    <small className="block text-xs text-rose-500">{item.missedDates.join(', ')}</small>
+                    <small className="block text-xs text-rose-500">
+                      Missed on: {item.missedDates.join(', ')}
+                    </small>
                   </span>
                   <strong>₹{item.expectedAmount.toLocaleString('en-IN')}</strong>
                 </div>

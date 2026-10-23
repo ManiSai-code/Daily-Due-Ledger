@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Search, Plus, Calendar, AlertCircle, Download } from 'lucide-react';
-import { getAllPeople } from '../api/apiServices';
+import { getAllPeople, getDashboardMetrics } from '../api/apiServices';
 import type { Person } from '../types';
 import { generatePeopleCSV } from '../utils/reportGenerator';
 
@@ -13,7 +13,9 @@ export const PeopleList: React.FC<PeopleListProps> = ({
   onOpenCreateModal,
   onSelectPerson,
 }) => {
+  const isAdmin = JSON.parse(localStorage.getItem('daily_due_user') || '{}').role === 'ADMIN';
   const [people, setPeople] = useState<Person[]>([]);
+  const [totalCollectedOverall, setTotalCollectedOverall] = useState(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,8 +27,12 @@ export const PeopleList: React.FC<PeopleListProps> = ({
     try {
       setLoading(true);
       setError(null);
-      const res = await getAllPeople(searchTerm, statusFilter);
+      const [res, metrics] = await Promise.all([
+        getAllPeople(searchTerm, statusFilter),
+        getDashboardMetrics(),
+      ]);
       setPeople(res);
+      setTotalCollectedOverall(metrics.totalCollectedOverall);
     } catch (err: unknown) {
       const message =
         err && typeof err === 'object' && 'response' in err
@@ -55,6 +61,7 @@ export const PeopleList: React.FC<PeopleListProps> = ({
           <p className="text-sm text-slate-500">Manage balances, daily payment targets, and projection timelines</p>
         </div>
         <div className="flex gap-2">
+          {isAdmin && (
           <button
             onClick={() => generatePeopleCSV(people)}
             disabled={people.length === 0}
@@ -63,6 +70,8 @@ export const PeopleList: React.FC<PeopleListProps> = ({
             <Download className="w-4 h-4" />
             <span>Download CSV</span>
           </button>
+          )}
+          {isAdmin && (
           <button
             onClick={onOpenCreateModal}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm shadow-xs transition flex items-center space-x-2 cursor-pointer"
@@ -70,7 +79,19 @@ export const PeopleList: React.FC<PeopleListProps> = ({
             <Plus className="w-4 h-4" />
             <span>New Borrower</span>
           </button>
+          )}
         </div>
+      </div>
+
+      {/* Search & Filter Bar */}
+      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <div>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Collected Overall</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1">
+            ₹{totalCollectedOverall.toLocaleString('en-IN')}
+          </p>
+        </div>
+        <div className="text-sm text-slate-500">All recorded payments</div>
       </div>
 
       {/* Search & Filter Bar */}

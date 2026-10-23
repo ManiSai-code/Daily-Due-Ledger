@@ -29,6 +29,7 @@ export const PersonProfile: React.FC<PersonProfileProps> = ({
   onBack,
   onDataChanged,
 }) => {
+  const isAdmin = JSON.parse(localStorage.getItem('daily_due_user') || '{}').role === 'ADMIN';
   const [person, setPerson] = useState<Person | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -119,22 +120,22 @@ export const PersonProfile: React.FC<PersonProfileProps> = ({
     <div className="space-y-6">
       {/* Header Bar */}
       <div className="flex items-center justify-between">
-        <button
+        {isAdmin && <button
           onClick={onBack}
           className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 text-sm font-medium cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Directory</span>
-        </button>
+        </button>}
 
         <div className="flex gap-3">
-          <button
+          {isAdmin && <button
             onClick={() => setIsDeleteModalOpen(true)}
             className="px-3.5 py-2 border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 font-medium text-sm flex items-center space-x-2 rounded-lg transition cursor-pointer"
           >
             <Trash2 className="w-4 h-4 text-rose-600" />
             <span>Delete Profile</span>
-          </button>
+          </button>}
           <button
   onClick={() => generatePersonReportPDF(person, transactions)}
   className="px-3.5 py-2 border border-slate-300 bg-white rounded-lg text-slate-700 hover:bg-slate-50 font-medium text-sm flex items-center space-x-2 transition cursor-pointer"
@@ -142,14 +143,16 @@ export const PersonProfile: React.FC<PersonProfileProps> = ({
   <Download className="w-4 h-4 text-indigo-600" />
   <span>Download Statement</span>
 </button>
-          <button
-            onClick={() => setIsAdjustModalOpen(true)}
-            className="px-3.5 py-2 border border-slate-300 bg-white rounded-lg text-slate-700 hover:bg-slate-50 font-medium text-sm flex items-center space-x-2 transition cursor-pointer"
-          >
-            <RefreshCw className="w-4 h-4 text-indigo-600" />
-            <span>Adjust Daily Target</span>
-          </button>
-          {person.status === 'ACTIVE' && (
+          {isAdmin && (
+            <button
+              onClick={() => setIsAdjustModalOpen(true)}
+              className="px-3.5 py-2 border border-slate-300 bg-white rounded-lg text-slate-700 hover:bg-slate-50 font-medium text-sm flex items-center space-x-2 transition cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4 text-indigo-600" />
+              <span>Adjust Daily Target</span>
+            </button>
+          )}
+          {isAdmin && person.status === 'ACTIVE' && (
             <button
               onClick={() => setIsPaymentModalOpen(true)}
               className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium text-sm flex items-center space-x-2 shadow-xs transition cursor-pointer"
@@ -206,7 +209,7 @@ export const PersonProfile: React.FC<PersonProfileProps> = ({
         </div>
 
         {/* Financial Overview Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-6">
           <div className="bg-slate-50 p-4 rounded-lg border border-slate-200/80">
             <span className="text-xs text-slate-500 font-medium">Original Loan</span>
             <div className="text-xl font-bold text-slate-900 mt-1">
@@ -218,6 +221,13 @@ export const PersonProfile: React.FC<PersonProfileProps> = ({
             <span className="text-xs text-amber-700 font-medium">Outstanding Balance</span>
             <div className="text-xl font-bold text-amber-900 mt-1">
               ₹{person.currentBalance.toLocaleString('en-IN')}
+            </div>
+          </div>
+
+          <div className="bg-emerald-50/60 p-4 rounded-lg border border-emerald-200/80">
+            <span className="text-xs text-emerald-700 font-medium">Total Cleared</span>
+            <div className="text-xl font-bold text-emerald-900 mt-1">
+              ₹{Math.max(0, person.originalAmount - person.currentBalance).toLocaleString('en-IN')}
             </div>
           </div>
 
@@ -307,12 +317,14 @@ export const PersonProfile: React.FC<PersonProfileProps> = ({
         onPaymentRecorded={handleActionCompleted}
       />
 
-      <AdjustDailyModal
-        person={person}
-        isOpen={isAdjustModalOpen}
-        onClose={() => setIsAdjustModalOpen(false)}
-        onAdjusted={handleActionCompleted}
-      />
+      {isAdmin && (
+        <AdjustDailyModal
+          person={person}
+          isOpen={isAdjustModalOpen}
+          onClose={() => setIsAdjustModalOpen(false)}
+          onAdjusted={handleActionCompleted}
+        />
+      )}
 
       <DeletePersonModal
         person={person}

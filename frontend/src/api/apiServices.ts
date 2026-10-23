@@ -1,4 +1,4 @@
-import type { DashboardData, Person, Transaction, DashboardMetrics, CollectionReport, PaymentReceipt } from '../types';
+import type { AuthUser, DashboardData, Person, Transaction, DashboardMetrics, CollectionReport, PaymentReceipt } from '../types';
 import apiClient from './apiClient';
 
 const responseNumber = (value: string | number | { $numberDecimal?: string }): number => {
@@ -13,6 +13,42 @@ export const getDashboardStats = async (): Promise<DashboardData> => {
     '/dashboard'
   );
   return 'data' in response.data ? response.data.data : response.data;
+};
+
+export const login = async (email: string, password: string): Promise<AuthUser> => {
+  const response = await apiClient.post<{ success: boolean; data: { token: string; user: AuthUser } }>(
+    '/auth/login',
+    { email, password }
+  );
+  localStorage.setItem('daily_due_token', response.data.data.token);
+  localStorage.setItem('daily_due_user', JSON.stringify(response.data.data.user));
+  return response.data.data.user;
+};
+
+export const getUsers = async (): Promise<AuthUser[]> => {
+  const response = await apiClient.get<{ success: boolean; data: Array<AuthUser & {
+    _id?: string;
+    assignedPersonIds?: Array<string | { toString(): string }>;
+  }> }>('/auth/users');
+  return response.data.data.map((user) => ({
+    id: user.id || user._id || '',
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    assignedPersonIds: (user.assignedPersonIds || []).map(String),
+  }));
+};
+
+export const createReadOnlyUser = async (data: {
+  name: string;
+  email: string;
+  password: string;
+}): Promise<void> => {
+  await apiClient.post('/auth/users', { ...data, role: 'READ_ONLY' });
+};
+
+export const assignBorrowers = async (userId: string, personIds: string[]): Promise<void> => {
+  await apiClient.patch(`/auth/users/${userId}/assignments`, { personIds });
 };
 export const getDashboardMetrics = async (): Promise<DashboardMetrics> => {
   const response = await apiClient.get<{ success: boolean; data: DashboardMetrics } | DashboardMetrics>(

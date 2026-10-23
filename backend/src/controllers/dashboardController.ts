@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { Person, AccountStatus } from '../models/Person';
 import { Transaction } from '../models/Transaction';
+import { AuthenticatedRequest } from '../middleware/auth';
+import { UserRole } from '../models/User';
 
 interface DashboardTransaction {
   id: string;
@@ -40,15 +42,24 @@ const indiaDateKey = (date: Date): string => {
   return `${values.get('year')}-${values.get('month')}-${values.get('day')}`;
 };
 
-export const getCollectionReport = async (req: Request, res: Response): Promise<void> => {
+export const getCollectionReport = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { start, end } = getDateRange(
       typeof req.query.from === 'string' ? req.query.from : undefined,
       typeof req.query.to === 'string' ? req.query.to : undefined
     );
     const [people, transactions] = await Promise.all([
-      Person.find().lean(),
-      Transaction.find({ paymentDate: { $gte: start, $lte: end } })
+      Person.find(
+        req.user?.role === UserRole.READ_ONLY
+          ? { _id: { $in: req.user.assignedPersonIds } }
+          : {}
+      ).lean(),
+      Transaction.find({
+        paymentDate: { $gte: start, $lte: end },
+        ...(req.user?.role === UserRole.READ_ONLY
+          ? { personId: { $in: req.user.assignedPersonIds } }
+          : {}),
+      })
         .sort({ paymentDate: -1 })
         .lean(),
     ]);
@@ -171,13 +182,25 @@ const getBalance = (person: Record<string, unknown>): number => {
   return asNumber(balance ?? person.originalAmount);
 };
 
-export const getDashboardStats = async (_req: Request, res: Response): Promise<void> => {
+export const getDashboardStats = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const [people, allTransactions] = await Promise.all([
-      Person.find().lean(),
-      Transaction.find().sort({ paymentDate: -1 }).lean(),
+      Person.find(
+        req.user?.role === UserRole.READ_ONLY
+          ? { _id: { $in: req.user.assignedPersonIds } }
+          : {}
+      ).lean(),
+      Transaction.find(
+        req.user?.role === UserRole.READ_ONLY
+          ? { personId: { $in: req.user.assignedPersonIds } }
+          : {}
+      ).sort({ paymentDate: -1 }).lean(),
     ]);
     const transactions = allTransactions.slice(0, 5);
+    const totalCollectedOverall = allTransactions.reduce(
+      (total, transaction) => total + asNumber(transaction.amount),
+      0
+    );
 
     const peopleById = new Map(
       people.map((person) => [String(person._id), person])
@@ -249,6 +272,7 @@ export const getDashboardStats = async (_req: Request, res: Response): Promise<v
 
     const payload = {
       totalOutstandingDebt,
+      totalCollectedOverall: Number(totalCollectedOverall.toFixed(2)),
       totalCollectedToday,
       expectedCollectionToday,
       actualCollectionToday: totalCollectedToday,
@@ -274,6 +298,7 @@ export const getDashboardStats = async (_req: Request, res: Response): Promise<v
         completedPeople: completedPeople.length,
         totalOutstandingMoney: totalOutstandingDebt,
         collectedToday: totalCollectedToday,
+        collectedAllTime: Number(totalCollectedOverall.toFixed(2)),
       },
     };
 

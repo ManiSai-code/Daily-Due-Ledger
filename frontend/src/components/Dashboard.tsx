@@ -27,6 +27,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onNavigateToPeople,
   onNavigateToCreatePerson,
 }) => {
+  const isAdmin = JSON.parse(localStorage.getItem('daily_due_user') || '{}').role === 'ADMIN';
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -108,6 +109,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         <div className="flex flex-wrap gap-3">
+          {isAdmin && (
           <button
             onClick={() => setIsQuickPaymentOpen(true)}
             className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium text-sm shadow-xs transition flex items-center space-x-2 cursor-pointer"
@@ -115,6 +117,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <PlusCircle className="w-4 h-4" />
             <span>Record Payment</span>
           </button>
+          )}
+          {isAdmin && (
           <button
             onClick={onNavigateToCreatePerson}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm shadow-xs transition flex items-center space-x-2 cursor-pointer"
@@ -122,6 +126,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <UserPlus className="w-4 h-4" />
             <span>Add New Borrower</span>
           </button>
+          )}
         </div>
       </div>
 
@@ -152,6 +157,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
     <div className="text-2xl font-bold text-slate-900 mt-2">
       ₹{(metrics?.totalCollectedToday ?? 0).toLocaleString('en-IN')}
     </div>
+  </div>
+
+  {/* Total Collected Overall */}
+  <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+    <div className="flex justify-between items-center">
+      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Collected Overall</span>
+      <div className="p-2 bg-violet-50 text-violet-600 rounded-lg">
+        <IndianRupee className="w-5 h-5" />
+      </div>
+    </div>
+    <div className="text-2xl font-bold text-slate-900 mt-2">
+      ₹{(metrics.totalCollectedOverall ?? 0).toLocaleString('en-IN')}
+    </div>
+    <p className="text-xs text-slate-500 mt-1">All recorded payments</p>
   </div>
 
   {/* Active Borrowers */}
@@ -297,11 +316,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* Quick Record Payment Modal */}
-      <QuickPaymentModal
-        isOpen={isQuickPaymentOpen}
-        onClose={() => setIsQuickPaymentOpen(false)}
-        onPaymentRecorded={fetchDashboardData}
-      />
+      {isAdmin && (
+        <QuickPaymentModal
+          isOpen={isQuickPaymentOpen}
+          onClose={() => setIsQuickPaymentOpen(false)}
+          onPaymentRecorded={fetchDashboardData}
+        />
+      )}
     </div>
   );
 };
