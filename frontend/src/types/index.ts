@@ -36,6 +36,7 @@ export interface Person {
 
 export interface Transaction {
   id: string;
+  receiptNumber: string;
   amount: number;
   previousBalance: number;
   newBalance: number;
@@ -43,6 +44,18 @@ export interface Transaction {
   notes?: string;
   paymentDate: string;
   createdAt: string;
+}
+
+export interface PaymentReceipt {
+  receiptNumber: string;
+  personName: string;
+  phoneNumber: string;
+  amount: number;
+  previousBalance: number;
+  newBalance: number;
+  paymentMethod: PaymentMethod;
+  notes?: string;
+  paymentDate: string;
 }
 
 export interface DashboardSummary {
@@ -80,7 +93,35 @@ export interface RecentTransaction {
 export interface DashboardMetrics {
   totalOutstandingDebt: number;
   totalCollectedToday: number;
+  expectedCollectionToday: number;
+  actualCollectionToday: number;
+  collectionPercentage: number;
+  missedPayments: number;
+  overdueAmount: number;
+  missedPaymentDate: string;
+  bestCollectionDay: {
+    date: string;
+    amount: number;
+  } | null;
   activeAccountsCount: number;
   completedAccountsCount: number;
   recentTransactions: RecentTransaction[];
+}
+
+export interface CollectionReport {
+  from: string;
+  to: string;
+  totalCollected: number;
+  totalOutstanding: number;
+  paymentCount: number;
+  expectedCollection: number;
+  missedPayments: number;
+  missedBorrowers: Array<{
+    id: string;
+    name: string;
+    missedDates: string[];
+    expectedAmount: number;
+  }>;
+  topBorrowers: Array<{ id: string; name: string; amount: number }>;
+  paymentMethodBreakdown: Array<{ method: string; amount: number }>;
 }

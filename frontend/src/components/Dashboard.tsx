@@ -8,11 +8,15 @@ import {
   Clock, 
   TrendingUp, 
   ArrowRight,
-  AlertCircle
+  AlertCircle,
+  Target,
+  AlertTriangle,
+  CalendarCheck,
 } from 'lucide-react';
 import { getDashboardMetrics } from '../api/apiServices';
 import type { DashboardMetrics } from '../types';
 import { QuickPaymentModal } from './QuickPaymentModal';
+import { CollectionReports } from './CollectionReports';
 
 interface DashboardProps {
   onNavigateToPeople: () => void;
@@ -176,6 +180,66 @@ export const Dashboard: React.FC<DashboardProps> = ({
     </div>
   </div>
 </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Expected Today</span>
+            <Target className="w-5 h-5 text-indigo-600" />
+          </div>
+          <div className="text-2xl font-bold text-slate-900 mt-2">
+            ₹{metrics.expectedCollectionToday.toLocaleString('en-IN')}
+          </div>
+          <p className="text-xs text-slate-500 mt-1">Based on active daily amounts</p>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Collection Rate</span>
+            <CalendarCheck className="w-5 h-5 text-emerald-600" />
+          </div>
+          <div className="text-2xl font-bold text-slate-900 mt-2">
+            {metrics.collectionPercentage.toLocaleString('en-IN')}%
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            ₹{metrics.actualCollectionToday.toLocaleString('en-IN')} collected today
+          </p>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Missed Payments</span>
+            <AlertTriangle className="w-5 h-5 text-rose-600" />
+          </div>
+          <div className="text-2xl font-bold text-slate-900 mt-2">{metrics.missedPayments}</div>
+          <p className="text-xs text-slate-500 mt-1">
+            ₹{metrics.overdueAmount.toLocaleString('en-IN')} expected but unpaid on{' '}
+            {new Date(`${metrics.missedPaymentDate}T00:00:00`).toLocaleDateString('en-IN')}
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Best Collection Day</p>
+          <p className="text-lg font-bold text-slate-900 mt-1">
+            {metrics.bestCollectionDay
+              ? new Date(`${metrics.bestCollectionDay.date}T00:00:00`).toLocaleDateString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                })
+              : 'No payment history yet'}
+          </p>
+        </div>
+        <p className="text-lg font-bold text-emerald-600">
+          {metrics.bestCollectionDay
+            ? `₹${metrics.bestCollectionDay.amount.toLocaleString('en-IN')}`
+            : '₹0'}
+        </p>
+      </div>
+
+      <CollectionReports />
 
       {/* Recent Activity Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">

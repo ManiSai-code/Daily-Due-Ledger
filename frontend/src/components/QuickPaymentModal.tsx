@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { X, IndianRupee, AlertCircle, Search, UserCheck } from 'lucide-react';
+import { X, IndianRupee, AlertCircle, Search, UserCheck, Download, Share2 } from 'lucide-react';
 import { getAllPeople, recordPayment } from '../api/apiServices';
-import type { Person } from '../types';
+import type { PaymentReceipt, Person } from '../types';
+import { generatePaymentReceiptPDF, sharePaymentReceiptWhatsApp } from '../utils/reportGenerator';
 
 interface QuickPaymentModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export const QuickPaymentModal: React.FC<QuickPaymentModalProps> = ({
 
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [receipt, setReceipt] = useState<PaymentReceipt | null>(null);
 
   const resetForm = () => {
     setSelectedPersonId('');
@@ -33,6 +35,7 @@ export const QuickPaymentModal: React.FC<QuickPaymentModalProps> = ({
     setNotes('');
     setError(null);
     setLoadingPeople(true);
+    setReceipt(null);
   };
 
   const handleClose = () => {
@@ -74,6 +77,41 @@ export const QuickPaymentModal: React.FC<QuickPaymentModalProps> = ({
 
   if (!isOpen) return null;
 
+  if (receipt) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+        <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="font-bold text-slate-800">Payment Recorded</h2>
+              <p className="text-sm text-emerald-600">Receipt {receipt.receiptNumber}</p>
+            </div>
+            <button onClick={handleClose} className="text-slate-400 hover:text-slate-600">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 text-sm space-y-2">
+            <p className="flex justify-between"><span>Borrower</span><strong>{receipt.personName}</strong></p>
+            <p className="flex justify-between"><span>Amount paid</span><strong>₹{receipt.amount.toLocaleString('en-IN')}</strong></p>
+            <p className="flex justify-between"><span>Remaining balance</span><strong>₹{receipt.newBalance.toLocaleString('en-IN')}</strong></p>
+            <p className="flex justify-between"><span>Method</span><strong>{receipt.paymentMethod}</strong></p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => generatePaymentReceiptPDF(receipt)} className="flex-1 inline-flex justify-center items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm">
+              <Download className="w-4 h-4" /> PDF
+            </button>
+            <button onClick={() => sharePaymentReceiptWhatsApp(receipt)} className="flex-1 inline-flex justify-center items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm">
+              <Share2 className="w-4 h-4" /> WhatsApp
+            </button>
+          </div>
+          <button onClick={handleClose} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+            Done
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const selectedPerson = people.find((p) => p.id === selectedPersonId);
   const numAmount = parseFloat(amount);
   const isOverpaid =
@@ -107,7 +145,7 @@ export const QuickPaymentModal: React.FC<QuickPaymentModalProps> = ({
 
     try {
       setSubmitting(true);
-      await recordPayment({
+      const paymentReceipt = await recordPayment({
         personId: selectedPerson.id,
         amount: numAmount,
         paymentMethod,
@@ -115,8 +153,8 @@ export const QuickPaymentModal: React.FC<QuickPaymentModalProps> = ({
       });
 
       resetForm();
+      setReceipt({ ...paymentReceipt, phoneNumber: selectedPerson.phoneNumber });
       onPaymentRecorded();
-      onClose();
     } catch (err: unknown) {
       const message =
         err && typeof err === 'object' && 'response' in err

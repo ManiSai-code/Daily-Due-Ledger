@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Search, Plus, Calendar, AlertCircle } from 'lucide-react';
+import { Search, Plus, Calendar, AlertCircle, Download } from 'lucide-react';
 import { getAllPeople } from '../api/apiServices';
 import type { Person } from '../types';
+import { generatePeopleCSV } from '../utils/reportGenerator';
 
 interface PeopleListProps {
   onOpenCreateModal: () => void;
@@ -53,13 +54,23 @@ export const PeopleList: React.FC<PeopleListProps> = ({
           <h1 className="text-2xl font-bold text-slate-800">Borrower Accounts Directory</h1>
           <p className="text-sm text-slate-500">Manage balances, daily payment targets, and projection timelines</p>
         </div>
-        <button
-          onClick={onOpenCreateModal}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm shadow-xs transition flex items-center space-x-2 cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Borrower</span>
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => generatePeopleCSV(people)}
+            disabled={people.length === 0}
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 font-medium text-sm shadow-xs transition flex items-center space-x-2 cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download CSV</span>
+          </button>
+          <button
+            onClick={onOpenCreateModal}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm shadow-xs transition flex items-center space-x-2 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>New Borrower</span>
+          </button>
+        </div>
       </div>
 
       {/* Search & Filter Bar */}

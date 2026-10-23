@@ -8,6 +8,7 @@ export enum PaymentMethod {
 }
 
 export interface ITransaction extends Document {
+  receiptNumber: string;
   personId: Types.ObjectId;
   amount: Types.Decimal128;
   previousBalance: Types.Decimal128;
@@ -20,6 +21,13 @@ export interface ITransaction extends Document {
 
 const transactionSchema = new Schema<ITransaction>(
   {
+    receiptNumber: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+      trim: true,
+    },
     personId: {
       type: Schema.Types.ObjectId,
       ref: 'Person',

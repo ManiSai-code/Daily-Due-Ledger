@@ -1,4 +1,4 @@
-import type { DashboardData, Person, Transaction, DashboardMetrics } from '../types';
+import type { DashboardData, Person, Transaction, DashboardMetrics, CollectionReport, PaymentReceipt } from '../types';
 import apiClient from './apiClient';
 
 export const getDashboardStats = async (): Promise<DashboardData> => {
@@ -12,6 +12,14 @@ export const getDashboardMetrics = async (): Promise<DashboardMetrics> => {
     '/dashboard'
   );
   return 'data' in response.data ? response.data.data : response.data;
+};
+
+export const getCollectionReport = async (from: string, to: string): Promise<CollectionReport> => {
+  const response = await apiClient.get<{ success: boolean; data: CollectionReport }>(
+    '/dashboard/report',
+    { params: { from, to } }
+  );
+  return response.data.data;
 };
 
 export const getAllPeople = async (search = '', status = ''): Promise<Person[]> => {
@@ -43,9 +51,34 @@ export const recordPayment = async (data: {
   amount: number;
   paymentMethod: string;
   notes?: string;
-}): Promise<unknown> => {
-  const response = await apiClient.post('/transactions', data);
-  return response.data;
+}): Promise<PaymentReceipt> => {
+  const response = await apiClient.post<{
+    success: boolean;
+    data: {
+      receiptNumber: string;
+      transaction: {
+        amount: string | number;
+        previousBalance: string | number;
+        newBalance: string | number;
+        paymentMethod: PaymentReceipt['paymentMethod'];
+        notes?: string;
+        paymentDate: string;
+      };
+      updatedPerson: { fullName: string; currentBalance: number };
+    };
+  }>('/transactions', data);
+  const result = response.data.data;
+  return {
+    receiptNumber: result.receiptNumber,
+    personName: result.updatedPerson.fullName,
+    phoneNumber: '',
+    amount: Number(result.transaction.amount),
+    previousBalance: Number(result.transaction.previousBalance),
+    newBalance: Number(result.transaction.newBalance),
+    paymentMethod: result.transaction.paymentMethod,
+    notes: result.transaction.notes,
+    paymentDate: result.transaction.paymentDate,
+  };
 };
 
 export const updateDailyAmount = async (

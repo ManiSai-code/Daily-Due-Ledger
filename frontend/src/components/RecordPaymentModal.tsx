@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { X, IndianRupee, AlertCircle } from 'lucide-react';
 import { recordPayment } from '../api/apiServices';
-import type { Person } from '../types';
+import type { PaymentReceipt, Person } from '../types';
+import { generatePaymentReceiptPDF, sharePaymentReceiptWhatsApp } from '../utils/reportGenerator';
 
 interface RecordPaymentModalProps {
   person: Person | null;
@@ -22,8 +23,40 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
 
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [receipt, setReceipt] = useState<PaymentReceipt | null>(null);
+
+  const handleClose = () => {
+    setReceipt(null);
+    onClose();
+  };
 
   if (!isOpen || !person) return null;
+
+  if (receipt) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+        <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="font-bold text-slate-800">Payment Recorded</h2>
+              <p className="text-sm text-emerald-600">Receipt {receipt.receiptNumber}</p>
+            </div>
+            <button onClick={handleClose} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+          </div>
+          <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 text-sm space-y-2">
+            <p className="flex justify-between"><span>Amount paid</span><strong>₹{receipt.amount.toLocaleString('en-IN')}</strong></p>
+            <p className="flex justify-between"><span>Remaining balance</span><strong>₹{receipt.newBalance.toLocaleString('en-IN')}</strong></p>
+            <p className="flex justify-between"><span>Method</span><strong>{receipt.paymentMethod}</strong></p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => generatePaymentReceiptPDF(receipt)} className="flex-1 px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm">Download PDF</button>
+            <button onClick={() => sharePaymentReceiptWhatsApp(receipt)} className="flex-1 px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm">Share WhatsApp</button>
+          </div>
+          <button onClick={handleClose} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">Done</button>
+        </div>
+      </div>
+    );
+  }
 
   const numAmount = parseFloat(amount);
   const isOverpaid = !isNaN(numAmount) && numAmount > person.currentBalance;
@@ -44,7 +77,7 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
 
     try {
       setSubmitting(true);
-      await recordPayment({
+      const paymentReceipt = await recordPayment({
         personId: person.id,
         amount: numAmount,
         paymentMethod,
@@ -53,8 +86,8 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
 
       setAmount('');
       setNotes('');
+      setReceipt({ ...paymentReceipt, phoneNumber: person.phoneNumber });
       onPaymentRecorded();
-      onClose();
     } catch (err: unknown) {
       const message =
         err && typeof err === 'object' && 'response' in err
@@ -74,7 +107,7 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
             <h2 className="font-bold text-slate-800">Record Repayment</h2>
             <p className="text-xs text-slate-500">{person.fullName} ({person.phoneNumber})</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer p-1">
+          <button onClick={handleClose} className="text-slate-400 hover:text-slate-600 cursor-pointer p-1">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -163,7 +196,7 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
           <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
             >
               Cancel

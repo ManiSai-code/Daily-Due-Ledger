@@ -96,6 +96,7 @@ export const getPersonPaymentHistoryService = async (personId: string) => {
 
   return transactions.map((t) => ({
     id: t._id,
+    receiptNumber: t.receiptNumber,
     amount: toNum(t.amount),
     previousBalance: toNum(t.previousBalance),
     newBalance: toNum(t.newBalance),

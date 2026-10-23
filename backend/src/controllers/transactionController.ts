@@ -50,7 +50,9 @@ export const recordPayment = async (req: Request, res: Response): Promise<void> 
     }
 
     const newBalance = Number((previousBalance - paymentAmount).toFixed(2));
+    const receiptNumber = `RCP-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${new mongoose.Types.ObjectId().toString().slice(-8).toUpperCase()}`;
     const transaction = new Transaction({
+      receiptNumber,
       personId: person._id,
       amount: paymentAmount,
       previousBalance: Types.Decimal128.fromString(previousBalance.toFixed(2)),
@@ -79,6 +81,7 @@ export const recordPayment = async (req: Request, res: Response): Promise<void> 
       message: 'Payment recorded successfully.',
       data: {
         transaction,
+        receiptNumber,
         updatedPerson: {
           id: person._id,
           fullName: person.fullName,
