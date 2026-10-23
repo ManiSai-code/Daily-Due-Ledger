@@ -26,8 +26,12 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
   const [receipt, setReceipt] = useState<PaymentReceipt | null>(null);
 
   const handleClose = () => {
+    const paymentWasRecorded = receipt !== null;
     setReceipt(null);
     onClose();
+    if (paymentWasRecorded) {
+      onPaymentRecorded();
+    }
   };
 
   if (!isOpen || !person) return null;
@@ -87,7 +91,6 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
       setAmount('');
       setNotes('');
       setReceipt({ ...paymentReceipt, phoneNumber: person.phoneNumber });
-      onPaymentRecorded();
     } catch (err: unknown) {
       const message =
         err && typeof err === 'object' && 'response' in err

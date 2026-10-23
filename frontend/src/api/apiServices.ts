@@ -1,6 +1,13 @@
 import type { DashboardData, Person, Transaction, DashboardMetrics, CollectionReport, PaymentReceipt } from '../types';
 import apiClient from './apiClient';
 
+const responseNumber = (value: string | number | { $numberDecimal?: string }): number => {
+  if (typeof value === 'object') {
+    return Number(value.$numberDecimal || 0);
+  }
+  return Number(value);
+};
+
 export const getDashboardStats = async (): Promise<DashboardData> => {
   const response = await apiClient.get<{ success: boolean; data: DashboardData } | DashboardData>(
     '/dashboard'
@@ -57,9 +64,9 @@ export const recordPayment = async (data: {
     data: {
       receiptNumber: string;
       transaction: {
-        amount: string | number;
-        previousBalance: string | number;
-        newBalance: string | number;
+        amount: string | number | { $numberDecimal?: string };
+        previousBalance: string | number | { $numberDecimal?: string };
+        newBalance: string | number | { $numberDecimal?: string };
         paymentMethod: PaymentReceipt['paymentMethod'];
         notes?: string;
         paymentDate: string;
@@ -72,9 +79,9 @@ export const recordPayment = async (data: {
     receiptNumber: result.receiptNumber,
     personName: result.updatedPerson.fullName,
     phoneNumber: '',
-    amount: Number(result.transaction.amount),
-    previousBalance: Number(result.transaction.previousBalance),
-    newBalance: Number(result.transaction.newBalance),
+    amount: responseNumber(result.transaction.amount),
+    previousBalance: responseNumber(result.transaction.previousBalance),
+    newBalance: responseNumber(result.transaction.newBalance),
     paymentMethod: result.transaction.paymentMethod,
     notes: result.transaction.notes,
     paymentDate: result.transaction.paymentDate,
