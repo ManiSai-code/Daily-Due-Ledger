@@ -12,16 +12,32 @@ interface DashboardTransaction {
 }
 
 const getDateRange = (from?: string, to?: string): { start: Date; end: Date } => {
-  const end = to ? new Date(`${to}T23:59:59.999`) : new Date();
+  const today = indiaDateKey(new Date());
+  const requestedEnd = to
+    ? new Date(`${to}T23:59:59.999+05:30`)
+    : new Date(`${today}T23:59:59.999+05:30`);
+  const todayEnd = new Date(`${today}T23:59:59.999+05:30`);
+  const end = requestedEnd > todayEnd ? todayEnd : requestedEnd;
   const start = from
-    ? new Date(`${from}T00:00:00.000`)
-    : new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    ? new Date(`${from}T00:00:00.000+05:30`)
+    : new Date(`${today}T00:00:00.000+05:30`);
 
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
     throw new Error('Invalid report date range.');
   }
 
   return { start, end };
+};
+
+const indiaDateKey = (date: Date): string => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const values = new Map(parts.map((part) => [part.type, part.value]));
+  return `${values.get('year')}-${values.get('month')}-${values.get('day')}`;
 };
 
 export const getCollectionReport = async (req: Request, res: Response): Promise<void> => {
@@ -40,7 +56,7 @@ export const getCollectionReport = async (req: Request, res: Response): Promise<
     const activePeople = people.filter((person) => person.status === AccountStatus.ACTIVE);
     const daysInRange = Math.max(
       1,
-      Math.ceil((end.getTime() - start.getTime()) / 86400000) + 1
+      Math.round((end.getTime() - start.getTime()) / 86400000)
     );
     const collected = transactions.reduce(
       (total, transaction) => total + asNumber(transaction.amount),
@@ -57,20 +73,18 @@ export const getCollectionReport = async (req: Request, res: Response): Promise<
     });
 
     const rangeDates = Array.from({ length: daysInRange }, (_, index) => {
-      const date = new Date(start);
-      date.setDate(start.getDate() + index);
-      return date.toISOString().slice(0, 10);
+      return indiaDateKey(new Date(start.getTime() + index * 86400000));
     });
     const paymentDatesByPerson = new Map<string, Set<string>>();
     transactions.forEach((transaction) => {
       const personId = String(transaction.personId);
       const dates = paymentDatesByPerson.get(personId) || new Set<string>();
-      dates.add(new Date(transaction.paymentDate).toISOString().slice(0, 10));
+      dates.add(indiaDateKey(new Date(transaction.paymentDate)));
       paymentDatesByPerson.set(personId, dates);
     });
     const missedBorrowers = activePeople
       .map((person) => {
-        const personStartDate = new Date(person.startDate).toISOString().slice(0, 10);
+        const personStartDate = indiaDateKey(new Date(person.startDate));
         const eligibleDates = rangeDates.filter((date) => date >= personStartDate);
         const paidDates = paymentDatesByPerson.get(String(person._id)) || new Set<string>();
         const missedDates = eligibleDates.filter((date) => !paidDates.has(date));
@@ -107,12 +121,18 @@ export const getCollectionReport = async (req: Request, res: Response): Promise<
     res.status(200).json({
       success: true,
       data: {
-        from: start.toISOString().slice(0, 10),
-        to: end.toISOString().slice(0, 10),
+        from: indiaDateKey(start),
+        to: indiaDateKey(end),
         totalCollected: Number(collected.toFixed(2)),
         totalOutstanding: Number(totalOutstanding.toFixed(2)),
         paymentCount: transactions.length,
         expectedCollection: Number(expectedCollection.toFixed(2)),
+        actualCollection: Number(collected.toFixed(2)),
+        missedAmount: Number(Math.max(0, expectedCollection - collected).toFixed(2)),
+        collectionPercentage:
+          expectedCollection > 0
+            ? Number(((collected / expectedCollection) * 100).toFixed(2))
+            : 0,
         missedPayments: missedBorrowers.length,
         missedBorrowers,
         topBorrowers,
@@ -174,10 +194,9 @@ export const getDashboardStats = async (_req: Request, res: Response): Promise<v
       0
     );
 
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const endOfToday = new Date();
-    endOfToday.setHours(23, 59, 59, 999);
+    const today = indiaDateKey(new Date());
+    const startOfToday = new Date(`${today}T00:00:00.000+05:30`);
+    const endOfToday = new Date(`${today}T23:59:59.999+05:30`);
 
     const todayTransactions = allTransactions.filter(
       (transaction) =>
@@ -205,7 +224,7 @@ export const getDashboardStats = async (_req: Request, res: Response): Promise<v
 
     const collectionsByDay = new Map<string, number>();
     allTransactions.forEach((transaction) => {
-      const date = new Date(transaction.paymentDate).toISOString().slice(0, 10);
+      const date = indiaDateKey(new Date(transaction.paymentDate));
       collectionsByDay.set(
         date,
         (collectionsByDay.get(date) || 0) + asNumber(transaction.amount)
@@ -239,7 +258,7 @@ export const getDashboardStats = async (_req: Request, res: Response): Promise<v
         (total, person) => total + asNumber(person.currentDailyAmount),
         0
       ),
-      missedPaymentDate: startOfToday.toISOString().slice(0, 10),
+      missedPaymentDate: indiaDateKey(startOfToday),
       bestCollectionDay: bestCollectionDay
         ? {
             date: bestCollectionDay[0],
