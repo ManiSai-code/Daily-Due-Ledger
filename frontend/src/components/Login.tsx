@@ -4,12 +4,13 @@ import type { AuthUser } from '../types';
 
 interface LoginProps {
   onLoggedIn: (user: AuthUser) => void;
+  initialMessage?: string | null;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLoggedIn }) => {
+export const Login: React.FC<LoginProps> = ({ onLoggedIn, initialMessage = null }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialMessage);
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async (event: React.FormEvent) => {

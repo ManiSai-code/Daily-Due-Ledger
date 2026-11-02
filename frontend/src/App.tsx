@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LayoutDashboard, Users } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { PeopleList } from './components/PeopleList';
@@ -17,13 +17,29 @@ export function App() {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [sessionMessage, setSessionMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setSessionMessage('Your session expired. Please sign in again.');
+      setUser(null);
+      setCurrentTab('dashboard');
+      setSelectedPersonId(null);
+    };
+
+    window.addEventListener('daily-due:session-expired', handleSessionExpired);
+    return () => window.removeEventListener('daily-due:session-expired', handleSessionExpired);
+  }, []);
 
   const handlePersonCreated = () => {
     setRefreshKey((prev) => prev + 1);
   };
 
   if (!user) {
-    return <Login onLoggedIn={setUser} />;
+    return <Login onLoggedIn={(loggedInUser) => {
+      setSessionMessage(null);
+      setUser(loggedInUser);
+    }} initialMessage={sessionMessage} />;
   }
 
   const handleSelectPerson = (id: string) => {
